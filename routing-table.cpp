@@ -28,19 +28,60 @@ namespace simple_router {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 // IMPLEMENT THIS METHOD
+	//takes the destination IP from a packet and returns the routing table entry that gives the desired path.  
+	//the destination in table may not be the destination you are looking for.  but it could have a similar prefix.  use algorithim to find longest prefix match
 RoutingTableEntry
 RoutingTable::lookup(uint32_t ip) const
 {
+	if (m_entries.empty())
+	{
+		throw std::runtime_error("Routing entry not found");
+	}
+	RoutingTableEntry longestMatchEntry;
+	uint32_t longestMatchMask = 0;
+	for (const auto& entry : m_entries) {
 
+		//longest prefix match algorithm, assumes the routing table is formatted correctly.  
+
+		if (entry.mask == 0) //mask of zero means this is a final hop, so it must be the destination we need, otherwise we can skip it.
+		{
+			if (entry.dest == ip)
+			{
+				return entry;
+			}
+			continue;
+		}
+		else 
+		{
+			uint32_t networkID = entry.dest & entry.mask; //bitwise operation that sets networkID to the portion of entry.dest that is the network portion. for example dest 192.55.233.50 and mask 255.255.0.0 makes the networkID 192.55.0.0 
+			//cout << networkID;
+			uint32_t mask_ip = ip & entry.mask;
+			if ((networkID == mask_ip) && (entry.mask > longestMatchMask))
+			{
+				longestMatchEntry = entry;
+				longestMatchMask = entry.mask;
+			}
+		}
+		
+	}
+	if (longestMatchMask == 0)
+	{
+		throw std::runtime_error("Routing entry not found");
+	}
+	else
+	{
+		return longestMatchEntry;
+	}
   // FILL THIS IN
-
-  throw std::runtime_error("Routing entry not found");
+	//for every entry in routing table
+  //throw std::runtime_error("Routing entry not found");
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // You should not need to touch the rest of this code.
 
+//used to load/initialize the routing table from a file, default name of this file is RTABLE.  
 bool
 RoutingTable::load(const std::string& file)
 {
@@ -87,12 +128,14 @@ RoutingTable::load(const std::string& file)
   return true;
 }
 
+//used to add an entry to the routing table.  We should not need to use this.  It is used automatically in the function that loads the routing table.
 void
 RoutingTable::addEntry(RoutingTableEntry entry)
 {
   m_entries.push_back(std::move(entry));
 }
 
+//overloads << operator so we can use cout to print a routing table entry.
 std::ostream&
 operator<<(std::ostream& os, const RoutingTableEntry& entry)
 {
@@ -103,6 +146,7 @@ operator<<(std::ostream& os, const RoutingTableEntry& entry)
   return os;
 }
 
+//overloads << operator so we can use cout to print out the entire routing table.
 std::ostream&
 operator<<(std::ostream& os, const RoutingTable& table)
 {
