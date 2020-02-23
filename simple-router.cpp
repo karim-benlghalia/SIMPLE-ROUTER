@@ -39,9 +39,94 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
 
   // FILL THIS IN
 
+  //  ****************    HandlePacket function requirements *********************************************************************************************************
+  //Check Ethernet frames, and ignore  Ethernet frames not destined to the router(destination hardware address is neither the corresponding 
+  // MAC address of the interface nor a broadcast address)
+  //Everytime The router receive an ehernet frame, we need to check the type of its payload if its IP4 or ARP, and ignore Ethernet frames other than ARP and IPv4.
+  //If it is IP4 we need to do the Sanity-check the packet (meets minimum length and has correct checksum).
+  //Decrement the TTL by 1, and recompute the packet checksum over the modified header.
+  //Find out which entry in the routing table has the longest prefix match with thedestination IP address.
+  //Check the ARP cache for the next-hop MAC address corresponding to the next-hop IP. If it’s there, send it. Otherwise, send an ARP request for the
+  //next-hop IP (if one hasn’t been sent within the last second), and add the packet to the queue of packets waiting on this ARP request.
+  //If the IP packet is destined towards one of our router’s IP addresses then: 
+  //                            * If the packet is an ICMP echo request and its checksum is valid, send an ICMP
+ //                               echo reply to the sending host.
+ //                             * If the packet contains a TCP or UDP payload, send an ICMP port unreachable to
+ //                                the sending host. Otherwise, ignore the packet. Packets destined elsewhere
+ //                                should be forwarded using your normal forwarding logic.
+ // *******************************************************************************************************************************************************************
+
+ // If the payload type is an IP4 then: 
+ //             * Extract the IP4 header from the ethernet frame Get Ip adresses .
+ //             * sanity check minimum length and correct checksum
+ //             * use the lookup function to find the MAC adress of the next-hop destination in the ARP cache
+ //             * If it is not in the ARP cache then we should queue the received packet and send ARP request to discover the IP-MAC mapping.
+ //             * If it is in the ARP cache then the router should proceed with handling the IP packet by modifying the MAC addresses in Ethernet frame 
+ //                and send the packet to the corresponding next-hop IP.
+ 
+ //If the payload is an ARP then: 
+ //             * Extract the ARP header from the ethernet frame Get Ip adresses .
+ //             * check if the ARP is a request or a reply.
+ //             * If it is a request:  properly respond to ARP requests for MAC address for the IP.
+ //             * If it is a reply:  record IP-MAC mapping information in ARP cache (Source IP/Source hardware address in the ARP reply), and send  
+ //               out all corresponding enqueued packets.
+ //             * Ignore all the ARP requests.
+
+ // Handles ICMP still working on it.
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
 
 // You should not need to touch the rest of this code.
 SimpleRouter::SimpleRouter()
