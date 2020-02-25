@@ -26,13 +26,76 @@ namespace simple_router {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-// IMPLEMENT THIS METHOD
+void handleRequest(ArpRequest request) {
+  
+}
+
 void
 ArpCache::periodicCheckArpRequestsAndCacheEntries()
 {
+  // for each request in queued requests:
+  // *         handleRequest(request)
+  std::list<std::shared_ptr<ArpRequest>>::const_iterator request;
+	for (request = m_arpRequests.begin(); request != m_arpRequests.end(); ) {
+    // Handle request
 
-  // FILL THIS IN
+    // Check to see if request has been made 5 times
+    if ((*request)->nTimesSent >= MAX_SENT_TIME) {
+      request = m_arpRequests.erase(request);
+      continue;
+    }
 
+    // Create ARP request 
+    Buffer packet(sizeof(ethernet_hdr) + sizeof(arp_hdr));
+    ethernet_hdr* ethernet_header = (ethernet_hdr*) packet.data();
+    arp_hdr* arp_header = (arp_hdr*) (packet.data() + sizeof(ethernet_hdr));
+
+    const Interface* interface_id = m_router.findIfaceByName((*it)->packets.front().iface);
+    // ETHER_ADDR_LEN = 6
+    uint8_t Broadcast_adr[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    // Construct Ethernet header
+    memcpy(ethernet_header->ether_shost, interface_id->addr.data(), ETHER_ADDR_LEN);
+    memcpy(ethernet_header->ether_dhost, Broadcast_adr, ETHER_ADDR_LEN);
+    ethernet_header->ether_type = htons(ethertype_arp);
+
+    // ARP header
+    request_arp_header->arp_hrd = htons(arp_hrd_ethernet);
+    request_arp_header->arp_pro = htons(ethertype_ip);
+    request_arp_header->arp_hln = ETHER_ADDR_LEN;
+    request_arp_header->arp_pln = 4;
+    request_arp_header->arp_op = htons(arp_op_request);
+    memcpy(request_arp_header->arp_sha, interface_id->addr.data(), ETHER_ADDR_LEN);
+    request_arp_header->arp_sip = interface_id->ip;
+    memcpy(request_arp_header->arp_tha, Broadcast_adr, ETHER_ADDR_LEN);
+    request_arp_header->arp_tip = (*entry)->ip;  // might need to grab from the original packet (original dest IP)
+
+    time_point current_time = steady_clock::now();
+    (*entry)->timeSent = now;
+    (*entry)->nTimesSent++;
+
+    // Send reply
+    m_router.sendPacket(packet, interface_id->name);
+    std::cerr << "Amount of times this ARP request has been made " << (*entry)->nTimesSent << std::endl;
+    print_hdrs(packet);
+    
+    entry++;
+	}
+
+  // for each cache entry in entries:
+  // *         if not entry->isValid
+  // *             record entry for removal
+  // *     remove all entries marked for removal
+  std::list<std::shared_ptr<ArpEntry>>::const_iterator entry;
+  for (entry = m_cacheEntries.begin(); entry != m_cacheEntries.end(); ) {
+    if ((*entry)->isValid) {
+      entry++;
+    } else {
+      entry = m_cacheEntries.erase(entry);
+    }
+  }
+  
+  return;
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
