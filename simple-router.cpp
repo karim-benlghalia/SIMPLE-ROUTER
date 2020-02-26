@@ -16,7 +16,7 @@
 
 #include "simple-router.hpp"
 #include "core/utils.hpp"
-
+#include <string>
 #include <fstream>
 
 namespace simple_router
@@ -95,6 +95,7 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
       break;
     case ethertype_arp: //handle ARP packet.
       std::cout << "This an ARP packet" << std::endl;
+      handleIP(packet, hdr_ether);
       break;
     default:
       //the packet is not an ARP nor IP packet it should be ignored.
@@ -111,6 +112,113 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
     return;
   }
 }
+
+void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
+{
+
+  std::cout << "This an IP packet" << std::endl;
+  const Interface *R_Interface;
+  struct ip_hdr ip_header;
+
+  if (packet.size() < sizeof(ethernet_hdr) + sizeof(ip_hdr))
+  {
+    std::cerr << "Invalid minimum length of IP packet, ignoring" << std::endl;
+    return;
+  }
+
+  memcpy(&ip_header, packet.data() + sizeof(ethernet_hdr), sizeof(ip_header));
+
+  struct ip_hdr ip_header_copy;
+  memcpy(&ip_header_copy, &ip_header, sizeof(ip_header));
+  ip_header_copy.ip_sum = 0;
+  //verify the packet checksum
+  uint16_t cksum_check = cksum(&ip_header_copy, sizeof(ip_header_copy));
+
+  if (cksum_check == (ip_header.ip_sum))
+  {
+    ip_header.ip_ttl = ip_header.ip_ttl - 1;
+    ip_header.ip_sum = 0;
+    ip_header.ip_sum = cksum(&ip_header, sizeof(ip_header)); //Recompute checksum
+    if (ip_header.ip_ttl == 0)
+    {
+
+      /*
+      *****************   TO DO: Do NOt forget to implement This! **********************************************
+    construct a Time Exceeded ICMP message to reply.
+      
+      */
+
+      // call ICMP handler that send an ICMP reply
+    }
+    R_Interface = findIfaceByIp(ip_header.ip_dst);
+
+    if (R_Interface != nullptr)
+    {
+      /*
+      *****************   TO DO: Do NOt forget to implement This! **********************************************
+    If the packet is an ICMP echo request and its checksum is valid, send an ICMP echo reply to the sending host.
+    If the packet contains a TCP or UDP payload, send an ICMP port unreachable to the sending host. Otherwise, 
+    ignore the packet. Packets destined elsewhere should be forwarded using your normal forwarding logic.
+      
+      */
+      //may be ICMP packet
+      // call ICMP handler
+    }
+    else
+    {
+      RoutingTableEntry RT_Entry = m_routingTable.lookup(ip_header.ip_dst);
+      const Interface *F_Interface = findIfaceByName(RT_Entry.ifName);
+      std::shared_ptr<simple_router::ArpEntry> dest_mac;
+      if (m_arp.lookup(ip_header.ip_dst) != nullptr)
+      {
+        try
+        {
+          std::string matched_mac = ipToString(RT_Entry.dest);
+          dest_mac = m_arp.lookup(ip_header.ip_dst);
+
+          memcpy(e_hdr.ether_shost, F_Interface->addr.data(), sizeof(e_hdr.ether_shost));  
+          memcpy(e_hdr.ether_dhost, (dest_mac->mac).data(), sizeof(e_hdr.ether_dhost)); 
+
+          memcpy(const_cast<unsigned char *>(packet.data()), &e_hdr, sizeof(e_hdr));
+          memcpy((const_cast<unsigned char *>(packet.data() + sizeof(e_hdr))), &ip_header, sizeof(ip_header));
+          sendPacket(packet, RT_Entry.ifName); //send packet
+          print_hdrs(packet);
+        }
+        catch (...)
+        { //if not found in forwarding table
+          std::cout << " No match in forwarding table found!\n"
+                    << std::endl;
+        }
+      }
+      else
+      {
+        // Queue the request to send later
+        std::shared_ptr<ArpRequest> arp_request = m_arp.queueRequest(ip_header.ip_dst, packet, F_Interface->name);
+        std::cout << "Next-hop IP not in ARP Cache, queuing ARP request" << std::endl;
+      }
+
+    } ////****************
+  }
+  else
+  {
+    std::cerr << "Invalid checksum, ignoring" << std::endl;
+    return;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
