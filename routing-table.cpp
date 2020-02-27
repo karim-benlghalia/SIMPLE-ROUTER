@@ -39,42 +39,18 @@ RoutingTable::lookup(uint32_t ip) const
 	}
 	RoutingTableEntry longestMatchEntry;
 	uint32_t longestMatchMask = 0;
-	for (const auto& entry : m_entries) {
-
-		//longest prefix match algorithm, assumes the routing table is formatted correctly.  
-
-		if (entry.mask == 0) //mask of zero means this is a final hop, so it must be the destination we need, otherwise we can skip it.
-		{
-			if (entry.dest == ip)
-			{
-				return entry;
-			}
-			continue;
-		}
-		else 
-		{
+	for (const auto& entry : m_entries) 
+	{
 			uint32_t networkID = entry.dest & entry.mask; //bitwise operation that sets networkID to the portion of entry.dest that is the network portion. for example dest 192.55.233.50 and mask 255.255.0.0 makes the networkID 192.55.0.0 
 			//cout << networkID;
 			uint32_t mask_ip = ip & entry.mask;
-			if ((networkID == mask_ip) && (entry.mask > longestMatchMask))
+			if ((networkID == mask_ip) && (entry.mask >= longestMatchMask))
 			{
 				longestMatchEntry = entry;
 				longestMatchMask = entry.mask;
-			}
-		}
-		
+			}		
 	}
-	if (longestMatchMask == 0)
-	{
-		throw std::runtime_error("Routing entry not found");
-	}
-	else
-	{
 		return longestMatchEntry;
-	}
-  // FILL THIS IN
-	//for every entry in routing table
-  //throw std::runtime_error("Routing entry not found");
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

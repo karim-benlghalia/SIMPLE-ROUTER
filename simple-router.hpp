@@ -43,7 +43,7 @@ public:
   void
   handlePacket(const Buffer& packet, const std::string& inIface);
 
-void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr);
+void handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr);
   /**
    * USE THIS METHOD TO SEND PACKETS
    *
