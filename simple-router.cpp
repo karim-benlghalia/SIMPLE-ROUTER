@@ -25,93 +25,94 @@ namespace simple_router
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 // IMPLEMENT THIS METHOD
-void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface)
-{
-  std::cerr << "Got packet of size " << packet.size() << " on interface " << inIface << std::endl;
+	void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface)
+	{
+		//std::cerr << "Got packet of size " << packet.size() << " on interface " << inIface << std::endl;
 
-  const Interface *iface = findIfaceByName(inIface);
-  if (iface == nullptr)
-  {
-    std::cerr << "Received packet, but interface is unknown, ignoring" << std::endl;
-    return;
-  }
+		const Interface *iface = findIfaceByName(inIface);
+		if (iface == nullptr)
+		{
+			std::cerr << "Received packet, but interface is unknown, ignoring" << std::endl;
+			return;
+		}
 
-  std::cerr << getRoutingTable() << std::endl;
+		//std::cerr << getRoutingTable() << std::endl;
 
-  // FILL THIS IN
 
-  //  ****************    HandlePacket function requirements *********************************************************************************************************
-  //Check Ethernet frames, and ignore  Ethernet frames not destined to the router(destination hardware address is neither the corresponding
-  // MAC address of the interface nor a broadcast address)
-  //Everytime The router receive an ehernet frame, we need to check the type of its payload if its IP4 or ARP, and ignore Ethernet frames other than ARP and IPv4.
-  //If it is IP4 we need to do the Sanity-check the packet (meets minimum length and has correct checksum).
-  //Decrement the TTL by 1, and recompute the packet checksum over the modified header.
-  //Find out which entry in the routing table has the longest prefix match with thedestination IP address.
-  //Check the ARP cache for the next-hop MAC address corresponding to the next-hop IP. If it’s there, send it. Otherwise, send an ARP request for the
-  //next-hop IP (if one hasn’t been sent within the last second), and add the packet to the queue of packets waiting on this ARP request.
-  //If the IP packet is destined towards one of our router’s IP addresses then:
-  //                            * If the packet is an ICMP echo request and its checksum is valid, send an ICMP
-  //                               echo reply to the sending host.
-  //                             * If the packet contains a TCP or UDP payload, send an ICMP port unreachable to
-  //                                the sending host. Otherwise, ignore the packet. Packets destined elsewhere
-  //                                should be forwarded using your normal forwarding logic.
-  // *******************************************************************************************************************************************************************
+		// FILL THIS IN
 
-  // If the payload type is an IP4 then:
-  //             * Extract the IP4 header from the ethernet frame Get Ip adresses .
-  //             * sanity check minimum length and correct checksum
-  //             * use the lookup function to find the MAC adress of the next-hop destination in the ARP cache
-  //             * If it is not in the ARP cache then we should queue the received packet and send ARP request to discover the IP-MAC mapping.
-  //             * If it is in the ARP cache then the router should proceed with handling the IP packet by modifying the MAC addresses in Ethernet frame
-  //                and send the packet to the corresponding next-hop IP.
+		//  ****************    HandlePacket function requirements *********************************************************************************************************
+		//Check Ethernet frames, and ignore  Ethernet frames not destined to the router(destination hardware address is neither the corresponding
+		// MAC address of the interface nor a broadcast address)
+		//Everytime The router receive an ehernet frame, we need to check the type of its payload if its IP4 or ARP, and ignore Ethernet frames other than ARP and IPv4.
+		//If it is IP4 we need to do the Sanity-check the packet (meets minimum length and has correct checksum).
+		//Decrement the TTL by 1, and recompute the packet checksum over the modified header.
+		//Find out which entry in the routing table has the longest prefix match with thedestination IP address.
+		//Check the ARP cache for the next-hop MAC address corresponding to the next-hop IP. If it’s there, send it. Otherwise, send an ARP request for the
+		//next-hop IP (if one hasn’t been sent within the last second), and add the packet to the queue of packets waiting on this ARP request.
+		//If the IP packet is destined towards one of our router’s IP addresses then:
+		//                            * If the packet is an ICMP echo request and its checksum is valid, send an ICMP
+		//                               echo reply to the sending host.
+		//                             * If the packet contains a TCP or UDP payload, send an ICMP port unreachable to
+		//                                the sending host. Otherwise, ignore the packet. Packets destined elsewhere
+		//                                should be forwarded using your normal forwarding logic.
+		// *******************************************************************************************************************************************************************
 
-  //If the payload is an ARP then:
-  //             * Extract the ARP header from the ethernet frame Get Ip adresses .
-  //             * check if the ARP is a request or a reply.
-  //             * If it is a request:  properly respond to ARP requests for MAC address for the IP.
-  //             * If it is a reply:  record IP-MAC mapping information in ARP cache (Source IP/Source hardware address in the ARP reply), and send
-  //               out all corresponding enqueued packets.
-  //             * Ignore all the ARP requests.
+		// If the payload type is an IP4 then:
+		//             * Extract the IP4 header from the ethernet frame Get Ip adresses .
+		//             * sanity check minimum length and correct checksum
+		//             * use the lookup function to find the MAC adress of the next-hop destination in the ARP cache
+		//             * If it is not in the ARP cache then we should queue the received packet and send ARP request to discover the IP-MAC mapping.
+		//             * If it is in the ARP cache then the router should proceed with handling the IP packet by modifying the MAC addresses in Ethernet frame
+		//                and send the packet to the corresponding next-hop IP.
 
-  // Handles ICMP still working on it.
+		//If the payload is an ARP then:
+		//             * Extract the ARP header from the ethernet frame Get Ip adresses .
+		//             * check if the ARP is a request or a reply.
+		//             * If it is a request:  properly respond to ARP requests for MAC address for the IP.
+		//             * If it is a reply:  record IP-MAC mapping information in ARP cache (Source IP/Source hardware address in the ARP reply), and send
+		//               out all corresponding enqueued packets.
+		//             * Ignore all the ARP requests.
 
-  struct ethernet_hdr hdr_ether;
+		// Handles ICMP still working on it.
 
-  //get the ethernet header basically the first 14 bytes (6 bytes for destination address, 6 bytes for the source address, and 2 bytes for ethernet type ),
-  memcpy(&hdr_ether, packet.data(), sizeof(hdr_ether));
-  uint16_t eth_type = ntohs(hdr_ether.ether_type);
+		struct ethernet_hdr hdr_ether;
 
-  uint8_t Broadcast_adr[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+		//get the ethernet header basically the first 14 bytes (6 bytes for destination address, 6 bytes for the source address, and 2 bytes for ethernet type ),
+		memcpy(&hdr_ether, packet.data(), sizeof(hdr_ether));
+		uint16_t eth_type = ntohs(hdr_ether.ether_type);
 
-  // check if the packet is sent to the router or it is a broadcast packet
-  if ((memcmp(hdr_ether.ether_dhost, Broadcast_adr, 6) == 0) ||
-      (memcmp(hdr_ether.ether_dhost, (iface->addr.data()), 6) == 0))
-  {
+		uint8_t Broadcast_adr[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-    switch (eth_type)
-    {
-    case ethertype_ip: // handle ip packet
-      std::cout << "This an IP packet" << std::endl;
-      break;
-    case ethertype_arp: //handle ARP packet.
-      std::cout << "This an ARP packet" << std::endl;
-      handleIP(packet, hdr_ether);
-      break;
-    default:
-      //the packet is not an ARP nor IP packet it should be ignored.
-      std::cerr << "Packet is not an IP nor an ARP, ignoring" << std::endl;
-      return;
-    }
-  }
+		// check if the packet is sent to the router or it is a broadcast packet
+		if ((memcmp(hdr_ether.ether_dhost, Broadcast_adr, 6) == 0) ||
+			(memcmp(hdr_ether.ether_dhost, (iface->addr.data()), 6) == 0))
+		{
 
-  else
-  {
+			switch (eth_type)
+			{
+			case ethertype_ip: // handle ip packet
+				std::cout << "This an IP packet" << std::endl;
+				break;
+			case ethertype_arp: //handle ARP packet.
+				std::cout << "This an ARP packet" << std::endl;
+				handleIP(packet, hdr_ether);
+				break;
+			default:
+				//the packet is not an ARP nor IP packet it should be ignored.
+				std::cerr << "Packet is not an IP nor an ARP, ignoring" << std::endl;
+				return;
+			}
+		}
 
-    //ignore Ethernet frames not destined to the router or are not a broadcast.
-    std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
-    return;
-  }
-}
+		else
+		{
+
+			//ignore Ethernet frames not destined to the router or are not a broadcast.
+			std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
+			return;
+		}
+	}
 
 void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
 {
@@ -193,6 +194,8 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
       else
       {
         // Queue the request to send later
+		// Buffer ip_and_data(packet+sizeof(struct ethernet_hdr), packet+sizeof(packet));
+
         std::shared_ptr<ArpRequest> arp_request = m_arp.queueRequest(ip_header.ip_dst, packet, F_Interface->name);
         std::cout << "Next-hop IP not in ARP Cache, queuing ARP request" << std::endl;
       }
@@ -206,7 +209,157 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
   }
 }
 
+void SimpleRouter::handleARP(const Buffer &packet)
+{
+	const uint8_t* buf = packet.data() + 14;
+	struct arp_hdr* hdr_arp = (arp_hdr*)buf;
 
+	if (ntohs(hdr_arp->arp_hrd) != arp_hrd_ethernet) //hardware type is 0x0001 (ethernet)
+	{
+		std::cerr << "Packet hardware type is not supported" << std::endl;
+		return;
+	}
+	if (ntohs(hdr_arp->arp_pro) != ethertype_ip) //protocol type is 0x0800 (IPv4)
+	{
+		std::cerr << "Packet protocol type is not supported" << std::endl;
+		return;
+	}
+	if (hdr_arp->arp_hln != 0x06) //hardware address length
+	{
+		std::cerr << "Length of specified hardware address is not supported" << std::endl;
+		return;
+	}
+	if (hdr_arp->arp_pln != 0x04) //protocol address length
+	{
+		std::cerr << "Length of specified network address is not supported" << std::endl;
+		return;
+	}
+
+	//record mac->IP mapping, we only have to do this for replies, but we can optionally do it for requests as well.
+	const Buffer mac(hdr_arp->arp_sha, hdr_arp->arp_sha + ETHER_ADDR_LEN);
+	std::shared_ptr<ArpRequest> pending_Requests = m_arp.insertArpEntry(mac, hdr_arp->arp_sip);
+
+
+	switch (ntohs(hdr_arp->arp_op))
+	{
+	case arp_op_request: //arp request message
+	{
+		const Interface* face = findIfaceByIp(hdr_arp->arp_tip); //looking for hardware interface with corresponding ip address
+		if (face != nullptr)
+		{
+			////////////////////////////////////
+			////////ARP HEADER TO SEND//////////
+			////////////////////////////////////
+			struct arp_hdr* hdr_arp_SEND;
+			hdr_arp_SEND = (struct arp_hdr*)malloc(sizeof(arp_hdr));
+			memcpy(hdr_arp_SEND, hdr_arp, sizeof(arp_hdr));
+
+			hdr_arp_SEND->arp_op = htons(arp_op_reply);
+
+			//source hardware address is the interface with the requested mac address				
+			for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+			{
+				hdr_arp_SEND->arp_sha[pos] = (face->addr.data())[pos];
+			}
+			hdr_arp_SEND->arp_sip = face->ip;
+
+			//destination hardware address is the source hardware address of the ARP request
+			for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+			{
+				hdr_arp_SEND->arp_tha[pos] = (hdr_arp->arp_sha)[pos];
+			}
+			hdr_arp_SEND->arp_tip = hdr_arp->arp_sip;
+
+			////////////////////////////////////
+			//////ETHERNET HEADER TO SEND///////
+			////////////////////////////////////
+			struct ethernet_hdr* eth_hdr_SEND;
+			eth_hdr_SEND = (struct ethernet_hdr*)malloc(sizeof(struct ethernet_hdr));
+
+			RoutingTableEntry RT_entry = m_routingTable.lookup(hdr_arp->arp_sip);
+
+			std::shared_ptr<ArpEntry> ARP_entry = m_arp.lookup(RT_entry.gw);
+			if (ARP_entry == nullptr)
+			{
+				std::cerr << "ARP_entry is nullptr" << std::endl;
+			}
+
+			for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+			{
+				eth_hdr_SEND->ether_dhost[pos] = (ARP_entry->mac.data())[pos];
+			}
+
+			const Interface* face_SEND = findIfaceByName(RT_entry.ifName);
+			for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+			{
+				eth_hdr_SEND->ether_shost[pos] = (face_SEND->addr.data())[pos];
+			}
+			eth_hdr_SEND->ether_type = htons(ethertype_arp);
+
+			buf = (const uint8_t*)eth_hdr_SEND;
+			const Buffer packet_TEMP_ETHER(buf, buf + sizeof(struct ethernet_hdr));
+
+			buf = (const uint8_t*)hdr_arp_SEND;
+			const Buffer packet_TEMP_ARP(buf, buf + sizeof(struct arp_hdr));
+
+			Buffer packet_SEND;
+			packet_SEND.insert(packet_SEND.begin(), packet_TEMP_ETHER.begin(), packet_TEMP_ETHER.end());
+			packet_SEND.insert(packet_SEND.end(), packet_TEMP_ARP.begin(), packet_TEMP_ARP.end());
+			sendPacket(packet_SEND, face_SEND->name);
+			free(hdr_arp_SEND);
+			free(eth_hdr_SEND);
+		}
+	}
+	break;
+	case arp_op_reply:
+	{//arp reply message, ArpCache::insertArpEntry(const Buffer& mac, uint32_t ip), //using Buffer = std::vector<unsigned char>;
+		if (pending_Requests == nullptr)
+		{
+			std::cerr << "no pending requests associated with this arp reply" << std::endl;
+		}
+		else
+		{
+			for (const auto& request : pending_Requests->packets) //ASSUMES THE REQUEST 
+			{
+
+				////////////////////////////////////
+			//////ETHERNET HEADER TO SEND///////
+			////////////////////////////////////
+				struct ethernet_hdr* eth_hdr_SEND;
+				eth_hdr_SEND = (struct ethernet_hdr*)malloc(sizeof(struct ethernet_hdr));
+
+				for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+				{
+					eth_hdr_SEND->ether_dhost[pos] = (hdr_arp->arp_sha)[pos]; //sender of the ARP packet tells us that destination hardware address
+				}
+
+				const Interface* face_SEND = findIfaceByName(request.iface);
+				for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+				{
+					eth_hdr_SEND->ether_shost[pos] = (face_SEND->addr.data())[pos]; //get the hardware address of the outface specified by this request
+				}
+				eth_hdr_SEND->ether_type = htons(ethertype_ip);
+
+
+				buf = (const uint8_t*)eth_hdr_SEND;
+				Buffer packet_SEND(buf, buf + sizeof(struct ethernet_hdr)); //insert ethernet header
+
+				packet_SEND.insert(packet_SEND.begin(), request.packet.begin(), request.packet.end()); //insert payload (ipv4)
+				sendPacket(packet_SEND, face_SEND->name);
+
+				free(eth_hdr_SEND);
+			}
+		}
+		//TODO do all packets in the queue get removed when n=5 (times sent)?
+
+	}
+	break;
+	default: //op code not recognized
+		std::cerr << "op code not recognized" << std::endl;
+		return;
+	}
+
+}
 
 
 

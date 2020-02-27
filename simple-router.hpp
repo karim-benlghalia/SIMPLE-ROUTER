@@ -44,6 +44,7 @@ public:
   handlePacket(const Buffer& packet, const std::string& inIface);
 
 void handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr);
+void handleARP(const Buffer &packet);
   /**
    * USE THIS METHOD TO SEND PACKETS
    *
