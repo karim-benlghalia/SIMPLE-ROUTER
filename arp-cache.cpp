@@ -50,7 +50,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     ethernet_hdr* ethernet_header = (ethernet_hdr*) packet.data();
     arp_hdr* arp_header = (arp_hdr*) (packet.data() + sizeof(ethernet_hdr));
 
-    const Interface* interface_id = m_router.findIfaceByName((*it)->packets.front().iface);
+    const Interface* interface_id = m_router.findIfaceByName((*request)->packets.front().iface);
     // ETHER_ADDR_LEN = 6
     uint8_t Broadcast_adr[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -60,26 +60,26 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     ethernet_header->ether_type = htons(ethertype_arp);
 
     // ARP header
-    request_arp_header->arp_hrd = htons(arp_hrd_ethernet);
-    request_arp_header->arp_pro = htons(ethertype_ip);
-    request_arp_header->arp_hln = ETHER_ADDR_LEN;
-    request_arp_header->arp_pln = 4;
-    request_arp_header->arp_op = htons(arp_op_request);
-    memcpy(request_arp_header->arp_sha, interface_id->addr.data(), ETHER_ADDR_LEN);
-    request_arp_header->arp_sip = interface_id->ip;
-    memcpy(request_arp_header->arp_tha, Broadcast_adr, ETHER_ADDR_LEN);
-    request_arp_header->arp_tip = (*entry)->ip;  // might need to grab from the original packet (original dest IP)
+    arp_header->arp_hrd = htons(arp_hrd_ethernet);
+    arp_header->arp_pro = htons(ethertype_ip);
+    arp_header->arp_hln = ETHER_ADDR_LEN;
+    arp_header->arp_pln = 4;
+    arp_header->arp_op = htons(arp_op_request);
+    memcpy(arp_header->arp_sha, interface_id->addr.data(), ETHER_ADDR_LEN);
+    arp_header->arp_sip = interface_id->ip;
+    memcpy(arp_header->arp_tha, Broadcast_adr, ETHER_ADDR_LEN);
+    arp_header->arp_tip = (*request)->ip;  // might need to grab from the original packet (original dest IP)
 
     time_point current_time = steady_clock::now();
-    (*entry)->timeSent = now;
-    (*entry)->nTimesSent++;
+    (*request)->timeSent = current_time;
+    (*request)->nTimesSent++;
 
     // Send reply
     m_router.sendPacket(packet, interface_id->name);
-    std::cerr << "Amount of times this ARP request has been made " << (*entry)->nTimesSent << std::endl;
+    std::cerr << "Amount of times this ARP request has been made " << (*request)->nTimesSent << std::endl;
     print_hdrs(packet);
     
-    entry++;
+    request++;
 	}
 
   // for each cache entry in entries:
