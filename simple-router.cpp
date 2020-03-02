@@ -35,7 +35,8 @@ namespace simple_router
 			std::cerr << "Received packet, but interface is unknown, ignoring" << std::endl;
 			return;
 		}
-
+		std::cerr << "Received Packet:" << std::endl;
+		print_hdrs(packet);
 		//std::cerr << getRoutingTable() << std::endl;
 
 
@@ -93,10 +94,11 @@ namespace simple_router
 			{
 			case ethertype_ip: // handle ip packet
 				std::cout << "This an IP packet" << std::endl;
+				handleIP(packet, hdr_ether);
 				break;
 			case ethertype_arp: //handle ARP packet.
 				std::cout << "This an ARP packet" << std::endl;
-				handleIP(packet, hdr_ether);
+				handleARP(packet);
 				break;
 			default:
 				//the packet is not an ARP nor IP packet it should be ignored.
@@ -194,9 +196,9 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
       else
       {
         // Queue the request to send later
-		// Buffer ip_and_data(packet+sizeof(struct ethernet_hdr), packet+sizeof(packet));
+		Buffer ip_and_data(packet.begin()+sizeof(ethernet_hdr), packet.end()); //QUEUE only ip hdr and payload, not ethernet because the arp handler code expects no ethernet header.  
 
-        std::shared_ptr<ArpRequest> arp_request = m_arp.queueRequest(ip_header.ip_dst, packet, F_Interface->name);
+        std::shared_ptr<ArpRequest> arp_request = m_arp.queueRequest(ip_header.ip_dst, ip_and_data, F_Interface->name);
         std::cout << "Next-hop IP not in ARP Cache, queuing ARP request" << std::endl;
       }
 
@@ -256,11 +258,12 @@ void SimpleRouter::handleARP(const Buffer &packet)
 
 			hdr_arp_SEND->arp_op = htons(arp_op_reply);
 
-			//source hardware address is the interface with the requested mac address				
+			//source hardware address is the interface with the requested mac address		
 			for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
 			{
 				hdr_arp_SEND->arp_sha[pos] = (face->addr.data())[pos];
 			}
+			//memcpy(hdr_arp_SEND->arp_sha, face->addr.data(), sizeof(hdr_arp_SEND->arp_sha));
 			hdr_arp_SEND->arp_sip = face->ip;
 
 			//destination hardware address is the source hardware address of the ARP request
@@ -305,6 +308,10 @@ void SimpleRouter::handleARP(const Buffer &packet)
 			Buffer packet_SEND;
 			packet_SEND.insert(packet_SEND.begin(), packet_TEMP_ETHER.begin(), packet_TEMP_ETHER.end());
 			packet_SEND.insert(packet_SEND.end(), packet_TEMP_ARP.begin(), packet_TEMP_ARP.end());
+
+			std::cerr << "Sent Packet:" << std::endl;
+			print_hdrs(packet_SEND);
+
 			sendPacket(packet_SEND, face_SEND->name);
 			free(hdr_arp_SEND);
 			free(eth_hdr_SEND);
@@ -349,8 +356,9 @@ void SimpleRouter::handleARP(const Buffer &packet)
 
 				free(eth_hdr_SEND);
 			}
+			m_arp.removeRequest(pending_Requests);
 		}
-		//TODO do all packets in the queue get removed when n=5 (times sent)?
+		//TODO do all packets in the queue get removed when n=5 (times sent)?  ALSO remove packets from queue once we get a reply
 
 	}
 	break;

@@ -41,7 +41,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 
     // Check to see if request has been made 5 times
     if ((*request)->nTimesSent >= MAX_SENT_TIME) {
-      request = m_arpRequests.erase(request);
+      request = m_arpRequests.erase(request); //TODO: Use removerequest function instead? arent there two points of removal
       continue;
     }
 
@@ -65,9 +65,17 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     arp_header->arp_hln = ETHER_ADDR_LEN;
     arp_header->arp_pln = 4;
     arp_header->arp_op = htons(arp_op_request);
-    memcpy(arp_header->arp_sha, interface_id->addr.data(), ETHER_ADDR_LEN);
+    //memcpy(arp_header->arp_sha, interface_id->addr.data(), ETHER_ADDR_LEN);
+	for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+	{
+		arp_header->arp_sha[pos] = (interface_id->addr.data())[pos];
+	}
     arp_header->arp_sip = interface_id->ip;
-    memcpy(arp_header->arp_tha, Broadcast_adr, ETHER_ADDR_LEN);
+    //memcpy(arp_header->arp_tha, Broadcast_adr, ETHER_ADDR_LEN);
+	for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
+	{
+		arp_header->arp_tha[pos] = Broadcast_adr[pos];
+	}
     arp_header->arp_tip = (*request)->ip;  // might need to grab from the original packet (original dest IP)
 
     time_point current_time = steady_clock::now();
