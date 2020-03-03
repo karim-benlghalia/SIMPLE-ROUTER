@@ -16,6 +16,9 @@
 
 #ifndef SIMPLE_ROUTER_SIMPLE_ROUTER_HPP
 #define SIMPLE_ROUTER_SIMPLE_ROUTER_HPP
+#define VALID_S 0xffff
+#define ICM_padding 34
+#define IP_PROTOCOL 0x01
 
 #include "arp-cache.hpp"
 #include "routing-table.hpp"
@@ -41,10 +44,16 @@ public:
    * complete with ethernet headers.
    */
   void
-  handlePacket(const Buffer& packet, const std::string& inIface);
+  handlePacket(const Buffer &packet, const std::string &inIface);
 
 void handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr);
 void handleARP(const Buffer &packet);
+void HandleIcmMessage1(const Buffer &packet, struct ethernet_hdr &e_hdr, int time_exceed);
+void  getArpPacket(const Buffer &packet, struct arp_hdr &arp_header);
+ 
+void buildIcm_reply(Buffer &Dup_packet, struct ethernet_hdr &e_hdr, uint8_t icmp_type);
+void assembleArpInterfaceReplyPacket(Buffer &replyPacket, struct ethernet_hdr e_hdr, struct arp_hdr arp_header);
+void HandleIcmMessage(const Buffer &packet, struct ethernet_hdr &e_hdr, uint8_t icmp_type, uint8_t icmp_code);
   /**
    * USE THIS METHOD TO SEND PACKETS
    *
@@ -112,6 +121,8 @@ private:
   RoutingTable m_routingTable;
   std::set<Interface> m_ifaces;
   std::map<std::string, uint32_t> m_ifNameToIpMap;
+  //std::string G_interface;
+
 
   friend class Router;
   pox::PacketInjectorPrx m_pox;
