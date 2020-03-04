@@ -85,7 +85,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     // Send reply
     m_router.sendPacket(packet, interface_id->name);
     std::cerr << "Amount of times this ARP request has been made " << (*request)->nTimesSent << std::endl;
-    print_hdrs(packet);
+    //print_hdrs(packet);
     
     request++;
 	}

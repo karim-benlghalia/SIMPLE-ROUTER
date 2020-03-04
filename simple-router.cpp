@@ -36,8 +36,8 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
     std::cerr << "Received packet, but interface is unknown, ignoring" << std::endl;
     return;
   }
-  std::cerr << "Received Packet:" << std::endl;
-  print_hdrs(packet);
+  //std::cerr << "Received Packet:" << std::endl;
+  //print_hdrs(packet);
   //std::cerr << getRoutingTable() << std::endl;
 
   // FILL THIS IN
@@ -94,6 +94,7 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
     {
     case ethertype_ip: // handle ip packet
       std::cout << "This an IP packet" << std::endl;
+	  print_hdrs(packet);
       handleIP(packet, hdr_ether);
       break;
     case ethertype_arp: //handle ARP packet.
@@ -114,12 +115,13 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
     std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
     return;
   }
+  
 }
 
 void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
 {
 
-  std::cout << "This an IP packet" << std::endl;
+  
   const Interface *R_Interface;
   struct ip_hdr ip_header;
 
@@ -238,15 +240,26 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
         }
       }
     }
-    else
-    {
-      RoutingTableEntry RT_Entry = m_routingTable.lookup(ip_header.ip_dst);
+	else
+	{
+		RoutingTableEntry RT_Entry;
+		try 
+		{
+			RT_Entry = m_routingTable.lookup(ip_header.ip_dst);
+		}
+		catch(...)
+		{
+			 //if not found in forwarding table
+				std::cout << " No match in forwarding table found!\n"
+					<< std::endl;
+				return;
+			
+		}
       const Interface *F_Interface = findIfaceByName(RT_Entry.ifName);
       std::shared_ptr<simple_router::ArpEntry> dest_mac;
       if (m_arp.lookup(ip_header.ip_dst) != nullptr)
       {
-        try
-        {
+   
           std::string matched_mac = ipToString(RT_Entry.dest);
           dest_mac = m_arp.lookup(ip_header.ip_dst);
 
@@ -256,19 +269,15 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
           memcpy(const_cast<unsigned char *>(packet.data()), &e_hdr, sizeof(e_hdr));
           memcpy((const_cast<unsigned char *>(packet.data() + sizeof(e_hdr))), &ip_header, sizeof(ip_header));
           sendPacket(packet, RT_Entry.ifName); //send packet
-          print_hdrs(packet);
-        }
-        catch (...)
-        { //if not found in forwarding table
-          std::cout << " No match in forwarding table found!\n"
-                    << std::endl;
-        }
+          //print_hdrs(packet);
+        
+ 
       }
       else
       {
         // Queue the request to send later
         Buffer ip_and_data(packet.begin() + sizeof(ethernet_hdr), packet.end()); //QUEUE only ip hdr and payload, not ethernet because the arp handler code expects no ethernet header.
-
+		std::cerr << "queueing IP packet" << std::endl;
         std::shared_ptr<ArpRequest> arp_request = m_arp.queueRequest(ip_header.ip_dst, ip_and_data, F_Interface->name);
         std::cout << "Next-hop IP not in ARP Cache, queuing ARP request" << std::endl;
       }
@@ -314,7 +323,7 @@ void SimpleRouter::buildIcm_reply(Buffer &Dup_packet, struct ethernet_hdr &e_hdr
 
   sendPacket(Dup_packet, R_RInterface->name);
   std::cout << "*****send ICMP packet*****" << std::endl;
-  print_hdrs(Dup_packet);
+  //print_hdrs(Dup_packet);
 }
 
 void SimpleRouter::HandleIcmMessage(const Buffer &packet, struct ethernet_hdr &e_hdr, uint8_t icmp_type, uint8_t icmp_code)
@@ -467,8 +476,8 @@ void SimpleRouter::handleARP(const Buffer &packet)
       packet_SEND.insert(packet_SEND.begin(), packet_TEMP_ETHER.begin(), packet_TEMP_ETHER.end());
       packet_SEND.insert(packet_SEND.end(), packet_TEMP_ARP.begin(), packet_TEMP_ARP.end());
 
-      std::cerr << "Sent Packet:" << std::endl;
-      print_hdrs(packet_SEND);
+      //std::cerr << "Sent Packet:" << std::endl;
+      //print_hdrs(packet_SEND);
 
       sendPacket(packet_SEND, face_SEND->name);
       free(hdr_arp_SEND);
@@ -481,6 +490,7 @@ void SimpleRouter::handleARP(const Buffer &packet)
     if (pending_Requests == nullptr)
     {
       std::cerr << "no pending requests associated with this arp reply" << std::endl;
+	  
     }
     else
     {
@@ -495,7 +505,7 @@ void SimpleRouter::handleARP(const Buffer &packet)
 
         for (int pos = 0; pos < ETHER_ADDR_LEN; pos++)
         {
-          eth_hdr_SEND->ether_dhost[pos] = (hdr_arp->arp_sha)[pos]; //sender of the ARP packet tells us that destination hardware address
+          eth_hdr_SEND->ether_dhost[pos] = (hdr_arp->arp_sha)[pos]; //TODO FIX
         }
 
         const Interface *face_SEND = findIfaceByName(request.iface);
@@ -508,9 +518,10 @@ void SimpleRouter::handleARP(const Buffer &packet)
         buf = (const uint8_t *)eth_hdr_SEND;
         Buffer packet_SEND(buf, buf + sizeof(struct ethernet_hdr)); //insert ethernet header
 
-        packet_SEND.insert(packet_SEND.begin(), request.packet.begin(), request.packet.end()); //insert payload (ipv4)
+        packet_SEND.insert(packet_SEND.end(), request.packet.begin(), request.packet.end()); //insert payload (ipv4)
         sendPacket(packet_SEND, face_SEND->name);
-
+		std::cerr << "unqueueing and sending IP packet:" << std::endl;
+		
         free(eth_hdr_SEND);
       }
       m_arp.removeRequest(pending_Requests);

@@ -39,6 +39,7 @@ RoutingTable::lookup(uint32_t ip) const
 	}
 	RoutingTableEntry longestMatchEntry;
 	uint32_t longestMatchMask = 0;
+	bool entryFound = false;
 	for (const auto& entry : m_entries) 
 	{
 			uint32_t networkID = entry.dest & entry.mask; //bitwise operation that sets networkID to the portion of entry.dest that is the network portion. for example dest 192.55.233.50 and mask 255.255.0.0 makes the networkID 192.55.0.0 
@@ -48,9 +49,17 @@ RoutingTable::lookup(uint32_t ip) const
 			{
 				longestMatchEntry = entry;
 				longestMatchMask = entry.mask;
+				entryFound = true;
 			}		
 	}
+	if (entryFound)
+	{
 		return longestMatchEntry;
+	}
+	else
+	{
+		throw std::runtime_error("Routing entry not found");
+	}
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
