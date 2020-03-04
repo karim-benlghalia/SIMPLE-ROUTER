@@ -48,11 +48,9 @@ public:
 
 void handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr);
 void handleARP(const Buffer &packet);
-void HandleIcmMessage1(const Buffer &packet, struct ethernet_hdr &e_hdr, int time_exceed);
-void  getArpPacket(const Buffer &packet, struct arp_hdr &arp_header);
  
 void buildIcm_reply(Buffer &Dup_packet, struct ethernet_hdr &e_hdr, uint8_t icmp_type);
-void assembleArpInterfaceReplyPacket(Buffer &replyPacket, struct ethernet_hdr e_hdr, struct arp_hdr arp_header);
+
 void HandleIcmMessage(const Buffer &packet, struct ethernet_hdr &e_hdr, uint8_t icmp_type, uint8_t icmp_code);
   /**
    * USE THIS METHOD TO SEND PACKETS
