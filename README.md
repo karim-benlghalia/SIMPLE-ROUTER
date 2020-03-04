@@ -1,34 +1,17 @@
 UCLA CS118 Project (Simple Router)
 ====================================
+## TEAM
+Brian Tagle : 604907076
 
-For more detailed information about the project and starter code, refer to the project description on CCLE.
+## Contribution
+Brian worked on handling arp requests/replies in simple-router and the implementation of the routing table.
 
-(For build dependencies, please refer to [`Vagrantfile`](Vagrantfile).)
+## High Level Design
+`simple-router`: This module receives packets at an interface and processes them.  When a packet is received the ethernet header is inspected to determine if it is an IP packet or an ARP packet.  If it is an ARP packet the arp handler function is used to determine if the ARP packet is an ARP reply or reuqest.  If it is an ARP request, the router formulates an ARP reply for the desired interface if it exists and sends the packet back to the requester.  If the packet is an ARP reply the router adds the given MAC-IP mapping to the arp cache and then sends out any packets who were waiting for this specific mapping. 
 
-## Makefile
+`arp-cache`:
 
-The provided `Makefile` provides several targets, including to build `router` implementation.  The starter code includes only the framework to receive raw Ethernet frames and to send Ethernet frames to the desired interfaces.  Your job is to implement the routers logic.
+`routing-table`: Our team implemented the lookup portion of the routing table.  Lookup finds the next hop IP address by comparing the network ID portion of entries in the routing table with the network portion of the given target IP.  The network ID portion of the IP address is computed using the mask associated with the entry.  
 
-Additionally, the `Makefile` a `clean` target, and `tarball` target to create the submission file as well.
-
-You will need to modify the `Makefile` to add your userid for the `.tar.gz` turn-in at the top of the file.
-
-## Academic Integrity Note
-
-You are encouraged to host your code in private repositories on [GitHub](https://github.com/), [GitLab](https://gitlab.com), or other places.  At the same time, you are PROHIBITED to make your code for the class project public during the class or any time after the class.  If you do so, you will be violating academic honestly policy that you have signed, as well as the student code of conduct and be subject to serious sanctions.
-
-## Known Limitations
-
-When POX controller is restrated, the simpler router needs to be manually stopped and started again.
-
-## Acknowledgement
-
-This implementation is based on the original code for Stanford CS144 lab3 (https://bitbucket.org/cs144-1617/lab3).
-
-## TODO
-
-    ###########################################################
-    ##                                                       ##
-    ## REPLACE CONTENT OF THIS FILE WITH YOUR PROJECT REPORT ##
-    ##                                                       ##
-    ###########################################################
+## Problems encountered
+One problem encountered was converting between host byte order and network byte order.  adding to the confusion, some things worked when no conversion was used while other things had to be converted manually between byte orders.  One example is in the ARP header where the hardware and protocol type had to be converted between byte orders while the hardware and protocol address length fields did not.  The best solution discovered for this was to look in the provided print functions in the core/utils file.  The implementation of these functions would show you what had to be converted and what did not.   
