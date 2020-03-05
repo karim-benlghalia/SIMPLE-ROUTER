@@ -18,7 +18,7 @@
 #define SIMPLE_ROUTER_SIMPLE_ROUTER_HPP
 #define VALID_S 0xffff
 #define ICM_padding 34
-#define IP_PROTOCOL 0x01
+#define ICMP_PROTOCOL 0x01
 
 #include "arp-cache.hpp"
 #include "routing-table.hpp"
