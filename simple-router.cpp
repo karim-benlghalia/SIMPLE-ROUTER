@@ -112,7 +112,7 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
   {
 
     //ignore Ethernet frames not destined to the router or are not a broadcast.
-    std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
+   // std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
     return;
   }
   
@@ -145,8 +145,6 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
     ip_header.ip_sum = 0;
     ip_header.ip_sum = cksum(&ip_header, sizeof(ip_header)); //Recompute checksum
     Buffer Dup_packet = packet;
-    uint32_t temp_dest_ip;
-    memcpy(&temp_dest_ip, &packet[30], sizeof(temp_dest_ip));
     if (ip_header.ip_ttl <= 0)
     {
       /*
@@ -173,7 +171,8 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
         else
         {
 
-          if (findIfaceByIp(temp_dest_ip) != nullptr)
+          const Interface* IP_interface = findIfaceByIp(ip_header.ip_dst);
+          if (IP_interface != nullptr)
           {
             icmp_type = 0x03;
             icmp_code = 0x03;
@@ -229,7 +228,9 @@ void SimpleRouter::handleIP(const Buffer &packet, struct ethernet_hdr &e_hdr)
         {
           uint8_t icmp_type = 0x0b;
           uint8_t icmp_code = 0x00;
-          if (findIfaceByIp(temp_dest_ip) != nullptr)
+          const Interface* IP_interface = findIfaceByIp(ip_header.ip_dst);
+
+          if (IP_interface != nullptr)
           {
             icmp_type = 0x03;
             icmp_code = 0x03;
@@ -308,14 +309,14 @@ void SimpleRouter::buildIcm_reply(Buffer &Dup_packet, struct ethernet_hdr &e_hdr
 
   //IP layer
   const Interface *R_RInterface = findIfaceByName(G_interface);
-  uint32_t temp_src_ip;
+  uint32_t IP_Source;
 
   bzero(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 10, sizeof(uint8_t));
   uint8_t cKsum_IP = cksum(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 20, sizeof(ip_hdr));
   memcpy(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 10, &cKsum_IP, sizeof(cKsum_IP));
-  memcpy(&temp_src_ip, Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, sizeof(temp_src_ip));
-  memcpy(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, &Dup_packet[26], sizeof(temp_src_ip));
-  memcpy(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 8, &temp_src_ip, sizeof(temp_src_ip));
+  memcpy(&IP_Source, Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, sizeof(IP_Source));
+  memcpy(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, &Dup_packet[26], sizeof(IP_Source));
+  memcpy(Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 8, &IP_Source, sizeof(IP_Source));
 
   //Ethernet layer
   memcpy(Dup_packet.data(), Dup_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 28, sizeof(e_hdr.ether_shost));
@@ -328,47 +329,40 @@ void SimpleRouter::buildIcm_reply(Buffer &Dup_packet, struct ethernet_hdr &e_hdr
 
 void SimpleRouter::HandleIcmMessage(const Buffer &packet, struct ethernet_hdr &e_hdr, uint8_t icmp_type, uint8_t icmp_code)
 {
-  Buffer ICM_packet;
-  uint8_t ip_protocol;
+  uint8_t IP_Protocol;
+  uint32_t IP_Source;
+  uint16_t Ip_len;
   struct ip_hdr ip_header;
-  memcpy(&ip_header, packet.data() + sizeof(ethernet_hdr), sizeof(ip_hdr));
-  memcpy(&ip_protocol, packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 11, sizeof(ip_protocol));
-
   struct icmp_hdr icmp_header;
-  memcpy(&icmp_header, packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header), sizeof(icmp_header));
+  Buffer ICM_packet;
+  ICM_packet = std::vector<unsigned char>(75);
+  const Interface *R_Rinterface = findIfaceByName(G_interface);
 
-  ICM_packet = std::vector<unsigned char>(70);
-
+  memcpy(&ip_header, packet.data() + sizeof(ethernet_hdr), sizeof(ip_hdr));
+  memcpy(&IP_Protocol, packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 11, sizeof(IP_Protocol));
+  memcpy(&icmp_header, packet.data() + sizeof(ip_header) + (ip_header.ip_hl * 4), sizeof(icmp_header));  
   memcpy(ICM_packet.data(), packet.data(), ICM_padding);
   memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) + 8, packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 20, 28);
-  uint32_t temp_dest_ip;
-  memcpy(&temp_dest_ip, packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, sizeof(temp_dest_ip));
-
+  
+  const Interface *R_RInterface = findIfaceByIp(ip_header.ip_dst);
+  if (R_RInterface == nullptr)
+    memcpy(&IP_Source, &R_Rinterface->ip, sizeof(IP_Source));
+  else
+    memcpy(&IP_Source, packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, sizeof(IP_Source)); 
   memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header), &icmp_type, sizeof(icmp_type));
   memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) + 1, &icmp_code, sizeof(icmp_code));
   uint16_t cKsum_ICM = cksum(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header), ICM_packet.size() - ICM_padding);
   memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) + 2, &cKsum_ICM, sizeof(icmp_header.icmp_sum));
 
   //IP layer
-  const Interface *R_Rinterface = findIfaceByName(G_interface);
-  uint32_t temp_src_ip;
-  ip_protocol = 0x01;
-  uint16_t ip_length;
-  memcpy(&ip_length, ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 18, sizeof(ip_length));
-  ip_length = htons(ntohs(ip_length) - 0x04);
-
+  IP_Protocol = ICMP_PROTOCOL;
+  memcpy(&Ip_len, ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 18, sizeof(Ip_len));
+  Ip_len = htons(ntohs(Ip_len) - 0x04);
   bzero(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 10, sizeof(uint16_t));
-
-  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 11, &ip_protocol, sizeof(ip_protocol));
-  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 18, &ip_length, sizeof(uint16_t));
-
-  if (findIfaceByIp(temp_dest_ip) != nullptr)
-    memcpy(&temp_src_ip, &temp_dest_ip, sizeof(temp_src_ip));
-  else
-    memcpy(&temp_src_ip, &R_Rinterface->ip, sizeof(temp_src_ip));
-  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 8, sizeof(temp_src_ip));
-  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 8, &temp_src_ip, sizeof(temp_src_ip));
-
+  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 11, &IP_Protocol, sizeof(IP_Protocol));
+  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 18, &Ip_len, sizeof(uint16_t));
+  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 4, ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 8, sizeof(IP_Source));
+  memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 8, &IP_Source, sizeof(IP_Source));
   uint16_t cKsum_IP = cksum(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 20, sizeof(ip_hdr));
   memcpy(ICM_packet.data() + sizeof(ethernet_hdr) + sizeof(ip_header) - 10, &cKsum_IP, sizeof(cKsum_IP));
 
