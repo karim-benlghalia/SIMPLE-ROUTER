@@ -112,7 +112,7 @@ void SimpleRouter::handlePacket(const Buffer &packet, const std::string &inIface
   {
 
     //ignore Ethernet frames not destined to the router or are not a broadcast.
-   // std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
+    std::cerr << "Frame is not destined to router (i.e. Neither the corresponding MAC address of the interface nor a broadcast address), ignoring" << std::endl;
     return;
   }
   
