@@ -2,8 +2,8 @@ UCLA CS118 Project (Simple Router)
 ====================================
 ## TEAM
 Brian Tagle : 604907076<br/>
-Karim Benlghalia : 105179657
-Michael Bustillos : 304929353
+Karim Benlghalia : 105179657<br/>
+Michael Bustillos : 304929353<br/>
 
 ## Contribution
 Brian worked on handling arp requests/replies in simple-router and the implementation of the routing table.<br/>
