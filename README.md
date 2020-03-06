@@ -3,10 +3,12 @@ UCLA CS118 Project (Simple Router)
 ## TEAM
 Brian Tagle : 604907076<br/>
 Karim Benlghalia : 105179657
+Michael Bustillos : 304929353
 
 ## Contribution
 Brian worked on handling arp requests/replies in simple-router and the implementation of the routing table.<br/>
-Karim worked on implementing handlePacket routine, IP handler routine and handling the ICMP packets.
+Karim worked on implementing handlePacket routine, IP handler routine and handling the ICMP packets. <br/>
+Michael worked on the method to lookup ARP entry in the ARP cache and dealing with invalid entries. <br/>
 
 ## High Level Design
 `simple-router`: This module receives packets at an interface and processes them.  When a packet is received the ethernet header is inspected to determine if it is an IP packet or an ARP packet.  If it is an ARP packet the arp handler function is used to determine if the ARP packet is an ARP reply or reuqest.  If it is an ARP request, the router formulates an ARP reply for the desired interface if it exists and sends the packet back to the requester.  If the packet is an ARP reply the router adds the given MAC-IP mapping to the arp cache and then sends out any packets who were waiting for this specific mapping. <br/>
