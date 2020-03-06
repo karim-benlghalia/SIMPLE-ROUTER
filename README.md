@@ -19,7 +19,7 @@ Michael worked on the method to lookup ARP entry in the ARP cache and dealing wi
 
 `ICMP reply and messages` : Routines that build an ICM messages based on the type of ICMP: Echo Reply message (type 0), Time Exceeded message (type 11, code 0), and Port Unreachable message (type 3, code 3).<br/>
 
-`arp-cache`:
+`arp-cache`: Go through each ARP request and check if it is valid. A request is valid if it hasn't been sent more than 5 time. If valid, then create ARP request packet with an updated time and hop count. In order to create packets, needed to construct ethernet and ARP headers. Finally, check each entry in the ARP cache and if its 'isValid' field is true. If not, get rid of it from the cache.
 
 `routing-table`: Our team implemented the lookup portion of the routing table.  Lookup finds the next hop IP address by comparing the network ID portion of entries in the routing table with the network portion of the given target IP.  The network ID portion of the IP address is computed using the mask associated with the entry.<br/>
 
